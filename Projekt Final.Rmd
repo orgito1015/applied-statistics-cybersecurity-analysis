@@ -1,0 +1,294 @@
+---
+title: "Projekt në Matematika e Aplikuar"
+subtitle: "Analizë Statistikore Përshkruese e të Dhënave mbi Sulmet Kibernetike"
+author: "Orgito Leka"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+
+output:
+  pdf_document:
+    toc: true
+    number_sections: true
+    toc_depth: 3
+    latex_engine: xelatex
+
+fontsize: 11pt
+geometry: margin=1in
+
+header-includes:
+  - \usepackage{graphicx}
+  - \usepackage{titling}
+  - \usepackage{etoolbox}
+  - \pretocmd{\tableofcontents}{\clearpage}{}{}
+  - \apptocmd{\tableofcontents}{\clearpage}{}{}
+  - \pretitle{\begin{center}\includegraphics[width=0.5\textwidth]{logo_university.png}\par\vspace{1cm}\LARGE}
+  - \posttitle{\par\end{center}\vspace{0.5cm}}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+library(janitor)
+library(knitr)
+
+# 1) Lexo dataset-in (file duhet të jetë në të njëjtin folder me Rmd ose jep path-in korrekt)
+df <- read.csv("cybersecurity_attacks.csv", stringsAsFactors = FALSE)
+df <- clean_names(df)
+
+# Kontroll sigurie për kolonat kryesore
+needed <- c("anomaly_scores", "protocol", "attack_type")
+missing <- setdiff(needed, names(df))
+if (length(missing) > 0) {
+  stop(paste0("Mungojnë kolonat: ", paste(missing, collapse = ", "),
+              ". Kontrollo names(df) dhe/ose dataset-in."))
+}
+
+# Variabla numerike e studimit
+x <- df$anomaly_scores
+x <- x[!is.na(x)]
+
+# Funksion për Modën (Mode)
+mode_value <- function(v) {
+  v <- v[!is.na(v)]
+  if (length(v) == 0) return(NA)
+  uv <- unique(v)
+  uv[which.max(tabulate(match(v, uv)))]
+}
+
+# Funksion i thjeshtë për anësinë (skewness) pa paketa shtesë
+skewness_simple <- function(v) {
+  v <- v[is.finite(v)]
+  m <- mean(v)
+  s <- sd(v)
+  if (length(v) < 3 || s == 0) return(0)
+  mean(((v - m) / s)^3)
+}
+```
+
+# 1. Hyrje
+
+Qëllimi i këtij projekti është zbatimi praktik i njohurive të statistikës përshkruese në kuadër të lëndës **Matematika e Aplikuar**. Analiza realizohet mbi një dataset real nga fusha e **sigurisë kibernetike**, i cili përmban të dhëna mbi ngjarje dhe anomali të regjistruara në trafikun e rrjetit.
+
+Projekti është i organizuar në dy pjesë kryesore të analizës:
+
+1. **Analizë numerike** për variablën `anomaly_scores` (tregues pozicioni + tregues shpërndarje + grafikë + tabelë dendurish).
+2. **Analizë kategorike** për dy variabla: `protocol` dhe `attack_type` (frekuenca + grafika + interpretim).
+
+---
+
+# 2. Përshkrimi i Dataset-it
+
+Dataset-i përmban **`r nrow(df)`** ngjarje dhe **`r ncol(df)`** variabla.  
+Në këtë projekt përdoren:
+
+- Variabla numerike: **`anomaly_scores`**
+- Variabla kategorike: **`protocol`**, **`attack_type`**
+
+---
+
+# 3. Analiza e Treguesve Statistikorë për `anomaly_scores`
+
+## 3.1 Treguesit e Pozicionit
+
+```{r position}
+mean_x   <- mean(x)
+median_x <- median(x)
+mode_x   <- mode_value(x)
+q        <- quantile(x, probs = c(0.25, 0.5, 0.75))
+
+pos_tbl <- data.frame(
+  Treguesi = c("Mesatarja (Mean)", "Mesorja (Median)", "Moda (Mode)",
+               "Kuartili i Parë (Q1)", "Kuartili i Dytë (Q2)", "Kuartili i Tretë (Q3)"),
+  Vlera    = c(mean_x, median_x, mode_x, q[1], q[2], q[3])
+)
+
+kable(pos_tbl, digits = 4, caption = "Treguesit e pozicionit për Anomaly Scores")
+```
+
+**Interpretim (me vlera konkrete):**  
+Mesatarja e `anomaly_scores` është **`r round(mean_x, 4)`**, ndërsa mesorja është **`r round(median_x, 4)`**. Kjo na tregon nivelin mesatar dhe nivelin qendror (tipik) të anomalive në dataset. Moda është **`r round(mode_x, 4)`**, pra vlera që shfaqet më shpesh dhe përfaqëson nivelin më të zakonshëm të anomalive gjatë monitorimit. Kuartilet (Q1=`r round(q[1], 4)`, Q2=`r round(q[2], 4)`, Q3=`r round(q[3], 4)`) ndihmojnë të kuptojmë si shpërndahen vlerat në 25%, 50% dhe 75% të të dhënave.
+
+---
+
+## 3.2 Treguesit e Shpërndarjes
+
+```{r dispersion}
+min_x <- min(x)
+max_x <- max(x)
+range_x <- max_x - min_x
+var_x <- var(x)
+sd_x <- sd(x)
+
+disp_tbl <- data.frame(
+  Treguesi = c("Minimumi", "Maksimumi", "Dispersioni (Range)", "Varianca", "Devijimi Standard"),
+  Vlera    = c(min_x, max_x, range_x, var_x, sd_x)
+)
+
+kable(disp_tbl, digits = 4, caption = "Treguesit e shpërndarjes për Anomaly Scores")
+```
+
+**Interpretim (me vlera konkrete):**  
+Minimumi është **`r round(min_x, 4)`** dhe maksimumi është **`r round(max_x, 4)`**, prandaj dispersioni (range) është **`r round(range_x, 4)`**. Kjo tregon shtrirjen totale të anomalive nga vlerat më të ulëta te ato më të larta. Varianca është **`r round(var_x, 4)`** dhe devijimi standard është **`r round(sd_x, 4)`**; një devijim standard i tillë tregon sa shumë ndryshojnë anomalitë nga mesatarja në mënyrë tipike. Nëse SD është relativisht i lartë, kjo nënkupton variabilitet të madh të anomalive në ngjarjet e dataset-it.
+
+---
+
+# 4. Paraqitje Grafike dhe Tabela për `anomaly_scores`
+
+## 4.1 Histogramë
+
+```{r hist}
+hist(
+  x,
+  col = "lightgray",
+  border = "white",
+  main = "Histogramë e Anomaly Scores",
+  xlab = "Anomaly Scores",
+  ylab = "Frekuenca"
+)
+```
+
+```{r hist-shape, results='asis'}
+sk <- skewness_simple(x)
+
+shape_text <- if (sk > 0.15) {
+  "Forma e histogramës sugjeron një shpërndarje **të anuar djathtas** (bisht më i gjatë në vlerat e larta), që nënkupton se shumica e anomalive janë më të ulëta, ndërsa disa raste të rralla kanë vlera shumë të larta."
+} else if (sk < -0.15) {
+  "Forma e histogramës sugjeron një shpërndarje **të anuar majtas** (bisht më i gjatë në vlerat e ulëta), që nënkupton se shumica e anomalive janë më të larta, ndërsa disa raste të rralla kanë vlera shumë të ulëta."
+} else {
+  "Forma e histogramës sugjeron një shpërndarje **afërsisht simetrike**, ku vlerat shpërndahen relativisht në mënyrë të balancuar rreth qendrës."
+}
+
+cat(shape_text)
+```
+
+---
+
+## 4.2 Kuti Grafiku (Boxplot)
+
+```{r box}
+boxplot(
+  x,
+  col = "lightgray",
+  main = "Boxplot i Anomaly Scores",
+  ylab = "Anomaly Scores"
+)
+```
+
+**Interpretim:**  
+Boxplot tregon medianën dhe kuartilet, si dhe vlerat ekstreme (outliers). Në këtë dataset, outliers janë të rëndësishëm sepse mund të përfaqësojnë ngjarje të rralla me anomalira shumë të larta, të cilat mund të lidhen me episode sulmi ose sjellje jo të zakonshme në rrjet.
+
+---
+
+## 4.3 Tabelë Dendurish (Frekuenca sipas intervaleve)
+
+```{r freq}
+classes <- 6
+freq <- table(cut(x, breaks = classes))
+freq_df <- data.frame(Intervali = names(freq), Frekuenca = as.integer(freq))
+
+kable(freq_df, caption = "Tabela e dendurive (frekuencat sipas intervaleve) për Anomaly Scores")
+```
+
+**Interpretim:**  
+Tabela e dendurive është paraqitje numerike e shpërndarjes së `anomaly_scores`. Ajo tregon sa ngjarje bien brenda secilit interval dhe ndihmon të identifikojmë intervalet ku grumbullohen shumica e vlerave, si dhe intervalet e rralla (anomali shumë të larta ose shumë të ulëta).
+
+---
+
+# 5. Analizë Kategorike: `protocol`
+
+Kjo pjesë analizon variablën **Protocol**, e cila tregon protokollin e komunikimit të përdorur gjatë ngjarjeve. Për variabla kategorike përdorim **frekuenca**, **përqindje**, dhe **grafikë kolonash**.
+
+## 5.1 Tabelë frekuencash dhe përqindjesh
+
+```{r protocol-table}
+prot_freq <- sort(table(df$protocol), decreasing = TRUE)
+prot_pct <- round(100 * prop.table(prot_freq), 2)
+
+prot_df <- data.frame(
+  Protokolli = names(prot_freq),
+  Frekuenca = as.integer(prot_freq),
+  Perqindja = as.numeric(prot_pct)
+)
+
+kable(prot_df, caption = "Shpërndarja e Protocol: frekuenca dhe përqindje")
+```
+
+**Interpretim:**  
+Tabela tregon se protokollet nuk janë të shpërndara në mënyrë të barabartë. Protokolli me frekuencën më të lartë ka **`r prot_df$Perqindja[1]`%** të rasteve, që tregon dominimin e tij në komunikimet e monitoruara. Kjo sugjeron se një pjesë e madhe e anomalive regjistrohet në protokollet më të përdorura, ndërsa protokollet e tjera paraqiten më rrallë.
+
+## 5.2 Grafik (barplot)
+
+```{r protocol-plot}
+barplot(
+  prot_freq,
+  col = "lightgray",
+  border = "white",
+  main = "Shpërndarja e Protokolleve",
+  xlab = "Protokolli",
+  ylab = "Frekuenca"
+)
+```
+
+**Interpretim i grafikut:**  
+Grafiku e bën të dukshme dominimin e disa protokolleve. Në praktikë, kjo do të thotë se monitorimi dhe masat e sigurisë duhet të kenë fokus më të madh te protokollet ku kalon shumica e trafikut dhe ku shfaqen më shpesh anomalitë.
+
+---
+
+# 6. Analizë Kategorike: `attack_type`
+
+Kjo pjesë analizon variablën **Attack Type**, e cila përfaqëson llojin e sulmit të regjistruar. Përsëri përdorim frekuenca, përqindje dhe grafik kolonash.
+
+## 6.1 Tabelë frekuencash dhe përqindjesh
+
+```{r attack-table}
+atk_freq <- sort(table(df$attack_type), decreasing = TRUE)
+atk_pct <- round(100 * prop.table(atk_freq), 2)
+
+atk_df <- data.frame(
+  Lloji_i_Sulmit = names(atk_freq),
+  Frekuenca = as.integer(atk_freq),
+  Perqindja = as.numeric(atk_pct)
+)
+
+kable(atk_df, caption = "Shpërndarja e Attack Type: frekuenca dhe përqindje")
+```
+
+**Interpretim:**  
+Tabela tregon se disa lloje sulmesh shfaqen shumë më shpesh se të tjerat. Lloji i sulmit më i shpeshtë përbën **`r atk_df$Perqindja[1]`%** të të gjitha rasteve, duke sugjeruar se këto kategori përfaqësojnë kërcënimet kryesore në dataset. Sulmet e tjera me përqindje më të ulët paraqesin rreziqe më të rralla, por mund të jenë më të specializuara.
+
+## 6.2 Grafik (barplot)
+
+```{r attack-plot}
+barplot(
+  atk_freq,
+  las = 2,
+  col = "lightgray",
+  border = "white",
+  main = "Shpërndarja e Llojeve të Sulmeve",
+  ylab = "Frekuenca"
+)
+```
+
+**Interpretim i grafikut:**  
+Grafiku tregon qartë se shpërndarja e llojeve të sulmeve është e pabarabartë: disa sulme dominojnë, ndërsa të tjerat janë të rralla. Kjo është e rëndësishme sepse ndihmon të kuptohet se ku duhet të përqendrohet vëmendja (p.sh. rregulla filtrimi, detektim dhe monitorim) ndaj kategorive më të shpeshta.
+
+---
+
+# 7. Përfundime
+
+Në këtë projekt u realizua një analizë statistikore përshkruese e një dataset-i real nga siguria kibernetike.
+
+- Për variablën numerike `anomaly_scores` u llogaritën treguesit kryesorë të pozicionit dhe shpërndarjes, si dhe u ndërtuan histogramë, boxplot dhe tabelë dendurish.
+- Për variablat kategorike `protocol` dhe `attack_type` u analizuan frekuencat dhe përqindjet, si dhe u ndërtuan grafikë kolonash me interpretim.
+
+Ky organizim demonstron përdorimin praktik të koncepteve të Matematikës së Aplikuar në analiza reale të të dhënave, duke zgjedhur metodat e duhura sipas tipit të variablës (numerike apo kategorike).
+
+
+# Referenca
+
+Kaggle. *Cybersecurity Attacks Dataset*.  
+Burim online i të dhënave të përdorura për analizë statistikore në kuadër të këtij projekti.
+
+# Shënim Shtesë
+
+Versioni online i këtij projekti është publikuar në platformën GitHub dhe është i aksesueshëm në adresën:
+https://github.com/orgito1015/applied-statistics-cybersecurity-analysis

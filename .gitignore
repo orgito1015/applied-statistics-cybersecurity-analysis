@@ -1,0 +1,14 @@
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+*_cache/
+*_files/
+*.aux
+*.log
+*.out
+*.toc
+*.tex
+*.synctex.gz
+*.fls
+*.fdb_latexmk

@@ -1,3 +1,5 @@
+![University Logo](logo_university.png)
+
 # Applied Statistics: Cybersecurity Attacks Analysis
 
 This repository contains an applied statistics project focused on a descriptive statistical analysis of a cybersecurity attacks dataset.

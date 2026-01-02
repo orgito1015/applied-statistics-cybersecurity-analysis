@@ -2,29 +2,44 @@
 
 This repository contains an applied statistics project focused on a descriptive statistical analysis of a cybersecurity attacks dataset.
 
-> Note: The analytical report and results are written in **Albanian**, while this repository documentation is provided in **English**.
+> **Note:** The analytical report and statistical analysis are written in **Albanian**, while this repository documentation is provided in **English**.
 
-## Repository Structure
+## Contents
 
-- report/ — R Markdown source (.Rmd)
-- docs/ — compiled outputs (PDF / HTML)
-- data/ — dataset used for analysis
-- assets/ — images used in the report (e.g., university logo)
+The repository includes the following key files:
 
-## Output
-- PDF Report: docs/Projekt-Final.pdf
+- **Projekt-Final.pdf** — Final compiled report (PDF)
+- **Projekt Final.Rmd** — R Markdown source file used to generate the analysis
+- **cybersecurity_attacks.csv** — Dataset used for the statistical analysis
+- **logo_university.png** — University logo used on the report cover page
+
+## Main Output
+
+- 📄 **PDF Report:** `Projekt-Final.pdf`
+
+This document contains the full descriptive statistical analysis, visualizations, and interpretations.
 
 ## Reproducing the Analysis
 
 ### Requirements
-- R (>= 4.0)
-- RStudio (optional)
-- LaTeX distribution (TinyTeX recommended)
+- R (version 4.0 or newer)
+- RStudio (optional, but recommended)
+- LaTeX distribution for PDF generation (TinyTeX recommended)
 
-### Render the report
+### Required R packages
 ```r
-rmarkdown::render("report/Projekt Final.Rmd")
+install.packages(c("rmarkdown", "knitr", "ggplot2", "dplyr", "janitor"))
 ```
 
+### Render the report
+From the repository root directory, run:
+
+```r
+rmarkdown::render("Projekt Final.Rmd")
+```
+
+This will regenerate the PDF report locally.
+
 ## Author
-Orgito Leka
+
+**Orgito Leka**
